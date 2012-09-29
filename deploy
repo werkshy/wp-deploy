@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -e
+
+echo "Pulling latest version from git"
+git pull
+
+echo "Loading latest database version"
+loaddb
+
+if [ -d wp-content/cache ]; then
+	echo "Deleting cached files"
+	rm -f wp-content/cache/*html
+	rm -rf wp-content/cache/supercache/*
+
+fi
+
+echo "Doing staggered restarting of apache to avoid memory leaks"
+service apache2 restart
+

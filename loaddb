@@ -1,0 +1,37 @@
+#!/bin/bash
+
+## Load a wordpress dumped db
+## Used in maintaining a development and production environment for Wordpress
+## deployments
+## Author Andy O'Neill <oneill@energyhub.net>
+
+
+DB_DUMP=db/dump.sql
+DB_USER=wordpress
+DB_PASSWORD=wordpress
+
+# Get the name of the database that was dumped
+DUMP_DB_NAME=$(grep "CREATE DATABASE" $DB_DUMP | awk -F '`' '{print $2}')
+# Get the name of the db to load into from wp_config.php
+LOAD_DB_NAME=$(grep DB_NAME wp-config.php  | awk -F "'" '{print $4}')
+
+DATE=$(date +%Y-%m-%d-%H%M)
+BACKUP_FILE=db/$LOAD_DB_NAME.${DATE}.sql
+
+if [ ! -e $DB_DUMP ]; then
+	echo "DB to load file not found: $DB_DUMP"
+	echo "Run from your wordpress directory"
+	echo "Usage loaddb"
+	exit 1
+fi
+
+echo "Loading from $DB_DUMP to $LOAD_DB_NAME."
+echo "Replacing database name in dump $DUMP_DB_NAME to $LOAD_DB_NAME."
+
+echo "Making backup of $LOAD_DB_NAME to $BACKUP_FILE"
+mysqldump --opt -u$DB_USER -p$DB_PASSWORD --databases $LOAD_DB_NAME \
+		> $BACKUP_FILE
+
+echo "Loading dump into $LOAD_DB_NAME"
+cat $DB_DUMP | sed "s/$DUMP_DB_NAME/$LOAD_DB_NAME/" \
+		| mysql -u$DB_USER -p$DB_PASSWORD $LOAD_DB_NAME

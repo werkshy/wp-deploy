@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+dumpdb
+
+git add .
+
+git commit -a
+
+git pull
+
+git push
+
+
