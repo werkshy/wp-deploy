@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eu
 
 ## Load a wordpress dumped db
 ## Used in maintaining a development and production environment for Wordpress
@@ -7,16 +8,24 @@
 
 
 DB_DUMP=db/dump.sql
-DB_USER=wordpress
-DB_PASSWORD=wordpress
 
 # Get the name of the database that was dumped
 DUMP_DB_NAME=$(grep "CREATE DATABASE" $DB_DUMP | awk -F '`' '{print $2}')
-# Get the name of the db to load into from wp_config.php
-LOAD_DB_NAME=$(grep DB_NAME wp-config.php  | awk -F "'" '{print $4}')
+# Get the parameters of the db to load into from wp_config.php
+DB_NAME=$(      grep DB_NAME        wp-config.php  | awk -F "'" '{print $4}')
+DB_USER=$(    	grep DB_USER 	    wp-config.php  | awk -F "'" '{print $4}')
+DB_PASSWORD=$(  grep DB_PASSWORD    wp-config.php  | awk -F "'" '{print $4}')
+DB_HOST=$(      grep DB_HOST        wp-config.php  | awk -F "'" '{print $4}' |  awk -F ":" '{print $1}' )
+DB_PORT=$(      grep DB_HOST        wp-config.php  | awk -F "'" '{print $4}' |  awk -F ":" '{print $2}' )
+echo "DB_NAME=[$DB_NAME]"
+echo "DB_USER=[$DB_USER]"
+echo "DB_PASSWORD=[$DB_PASSWORD]"
+echo "DB_HOST=[$DB_HOST]"
+echo "DB_PORT=[$DB_PORT]"
+#TODO add check for port presence
 
 DATE=$(date +%Y-%m-%d-%H%M)
-BACKUP_FILE=db/$LOAD_DB_NAME.${DATE}.sql
+BACKUP_FILE=db/$DB_NAME.${DATE}.sql
 
 if [ ! -e $DB_DUMP ]; then
 	echo "DB to load file not found: $DB_DUMP"
@@ -25,13 +34,12 @@ if [ ! -e $DB_DUMP ]; then
 	exit 1
 fi
 
-echo "Loading from $DB_DUMP to $LOAD_DB_NAME."
-echo "Replacing database name in dump $DUMP_DB_NAME to $LOAD_DB_NAME."
+echo "Loading from $DB_DUMP to $DB_NAME."
+echo "Replacing database name in dump $DUMP_DB_NAME to $DB_NAME."
 
-echo "Making backup of $LOAD_DB_NAME to $BACKUP_FILE"
-mysqldump --opt -u$DB_USER -p$DB_PASSWORD --databases $LOAD_DB_NAME \
-		> $BACKUP_FILE
+echo "Making backup of $DB_NAME to $BACKUP_FILE"
+mysqldump --opt -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASSWORD --databases $DB_NAME > $BACKUP_FILE
 
-echo "Loading dump into $LOAD_DB_NAME"
-cat $DB_DUMP | sed "s/$DUMP_DB_NAME/$LOAD_DB_NAME/" \
-		| mysql -u$DB_USER -p$DB_PASSWORD $LOAD_DB_NAME
+echo "Loading dump into $DB_NAME"
+cat $DB_DUMP | sed "s/$DUMP_DB_NAME/$DB_NAME/" \
+        | mysql -h$DB_HOST -P$DB_PORT -u$DB_USER -p$DB_PASSWORD $DB_NAME
