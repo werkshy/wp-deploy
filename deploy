@@ -16,5 +16,11 @@ if [ -d wp-content/cache ]; then
 fi
 
 echo "Doing staggered restarting of apache to avoid memory leaks"
-service apache2 restart
+CUSER=$(whoami)
+if [ $CUSER == "bitnami" ]; then
+	#Bitnami Wordpress has its own control script for apache:
+	sudo /opt/bitnami/ctlscript.sh restart apache
+else
+	sudo service apache2 restart
+fi
 

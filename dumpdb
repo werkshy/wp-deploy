@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eu
 
 ## Dump a wordpress db automatically
 ## Used in maintaining a development and production environment for Wordpress
@@ -6,8 +7,6 @@
 ## Author Andy O'Neill <oneill@energyhub.net>
 
 DUMP_FILE=db/dump.sql
-DB_USER=wordpress
-DB_PASSWORD=wordpress
 
 if [ ! -e wp-config.php ]; then
 	echo "wp-config.php not found"
@@ -15,12 +14,23 @@ if [ ! -e wp-config.php ]; then
 	echo "Usage dumpdb"
 	exit 1
 fi
-DB_NAME=$(grep DB_NAME wp-config.php  | awk -F "'" '{print $4}')
+# Get the parameters of the db to dump from wp_config.php
+DB_NAME=$(      grep DB_NAME        wp-config.php  | awk -F "'" '{print $4}')
+DB_USER=$(    	grep DB_USER 	    wp-config.php  | awk -F "'" '{print $4}')
+DB_PASSWORD=$(  grep DB_PASSWORD    wp-config.php  | awk -F "'" '{print $4}')
+DB_HOST=$(      grep DB_HOST        wp-config.php  | awk -F "'" '{print $4}' |  awk -F ":" '{print $1}' )
+DB_PORT=$(      grep DB_HOST        wp-config.php  | awk -F "'" '{print $4}' |  awk -F ":" '{print $2}' )
+echo "DB_NAME=[$DB_NAME]"
+echo "DB_USER=[$DB_USER]"
+echo "DB_PASSWORD=[$DB_PASSWORD]"
+echo "DB_HOST=[$DB_HOST]"
+echo "DB_PORT=[$DB_PORT]"
+#TODO add check for port presence
 
 mkdir -p db
 
 echo "Dumping $DB_NAME to $DUMP_FILE"
-mysqldump --opt -u$DB_USER -p$DB_PASSWORD --databases $DB_NAME > $DUMP_FILE
+mysqldump --opt -u$DB_USER -p$DB_PASSWORD --host $DB_HOST --port $DB_PORT --databases $DB_NAME > $DUMP_FILE
 
 echo "Dumped $DB_NAME to $DUMP_FILE"
 
